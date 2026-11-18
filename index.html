@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Recall – جمل التذكر</title>
+<style>
+:root{--bg:#0b1a1f;--card:#10222a;--gold:#f0b429;--green:#34d399;--red:#f87171;--blue:#60a5fa;--text:#e8f4f2;--muted:#7b8f93;--line:#2c4349}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min-height:100vh;display:flex;justify-content:center}
+#wrap{width:100%;max-width:640px;padding:12px}
+h1{font-family:'Space Mono',monospace;color:var(--gold);font-size:1.4rem;text-align:center;direction:ltr;margin:6px 0}
+.sub{text-align:center;color:var(--muted);font-size:.85rem;margin-bottom:10px;line-height:1.7}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;direction:ltr;margin-bottom:10px}
+.tab{padding:10px 0;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font-family:'Space Mono',monospace;font-weight:700;cursor:pointer;font-size:.9rem}
+.tab.on{border-color:var(--gold);color:var(--gold)}
+.tab small{display:block;font-size:.65rem;color:var(--muted);font-weight:400}
+.tab.full{border-color:var(--green)}
+.bar{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.bar button{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text);font-family:inherit;cursor:pointer;font-size:.85rem}
+.bar button.on{border-color:var(--blue);color:var(--blue)}
+#stat{color:var(--gold);font-weight:700;font-family:'Space Mono',monospace;direction:ltr}
+.row{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.row.ok{border-color:var(--green)}
+.row.no{border-color:var(--red)}
+.top{display:flex;gap:8px;align-items:center;direction:ltr}
+.num{color:var(--muted);font-family:'Space Mono',monospace;font-size:.8rem;min-width:26px}
+.play{width:42px;height:42px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--gold),#d97706);color:#000;font-size:1.1rem;cursor:pointer;flex:none}
+.sent{flex:1;font-family:'Space Mono',monospace;font-size:1rem;direction:ltr;text-align:left;line-height:1.5;filter:blur(7px);transition:filter .2s;user-select:none;cursor:pointer}
+.sent.show{filter:none;user-select:auto}
+.sent b{color:var(--gold)}
+.ar{direction:rtl;text-align:right;color:#9fb4b8;font-size:.9rem;margin-top:6px;min-height:20px}
+.io{display:flex;gap:8px;margin-top:8px;direction:ltr}
+.io input{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:#0b1a1f;color:#fff;font-family:'Space Mono',monospace;font-size:.95rem;outline:none;min-width:0}
+.io input:focus{border-color:var(--gold)}
+.mic{padding:0 14px;border-radius:10px;border:1px solid var(--blue);background:rgba(96,165,250,.12);color:var(--blue);cursor:pointer;font-size:1.1rem}
+.mic.on{background:rgba(248,113,113,.2);border-color:var(--red);color:var(--red);animation:pl 1s infinite}
+@keyframes pl{50%{opacity:.5}}
+.chk{padding:0 14px;border-radius:10px;border:none;background:var(--green);color:#000;font-weight:900;cursor:pointer;font-family:inherit}
+.res{margin-top:6px;font-size:.85rem;min-height:18px}
+.res.g{color:var(--green)}.res.r{color:var(--red)}
+.ptxt{direction:ltr;text-align:left;font-family:'Space Mono',monospace;font-size:.9rem;line-height:1.9;margin-top:10px;padding:10px;border-radius:10px;background:#0b1a1f;border:1px solid var(--line)}
+.ptxt b{color:var(--gold)}
+.pb{margin-top:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text);font-family:inherit;cursor:pointer}
+</style></head><body>
+<div id="wrap">
+<h1>WORD RECALL</h1>
+<div class="sub">استمع للجملة ← قل أو اكتب جملة أخرى فيها <b style="color:var(--gold)">نفس الكلمة</b><br>الجملة مخفية: اضغط عليها أو على 👁 لتراها</div>
+<div class="tabs" id="tabs"></div>
+<div class="bar">
+<span id="stat"></span>
+<span><button id="bShuf" onclick="toggleShuf()">🔀 عشوائي</button> <button id="bHide" class="on" onclick="toggleHide()">🙈 إخفاء النص</button> <button onclick="resetStage()">↺ إعادة</button></span>
+</div>
+<div id="list"></div>
+</div>
+<script>
+const DATA=`#Say hello
+مرحبا|hello/hi|Hello, my name is Yassine.
+وظيفة|job|I love my job.
+شركة|company|The company is in Agadir.
+مشتري|buyer|The buyer wants oranges.
+تصدير|export|We export fruits to France.
+برتقال|orange/oranges|These oranges are very sweet.
+غدا|tomorrow|I call you tomorrow.
+يبيع|sell|We sell fresh fruits.
+يتحدث|talk/speak|I speak English at work.
+يلتقي|meet|We meet the buyer tomorrow.
+يعمل|work|I work in a company.
+و|and|I like oranges and mandarins.
+في|in|The ship is in the port.
+إلى|to|I send the sample to Paris.
+أين|where|Where is the warehouse?
+ماذا|what|What do you sell?
+نعم|yes|Yes, I can come tomorrow.
+اسم|name|What is your name?
+نحن|we|We work with farmers.
+أنت|you|You are a good partner.
+#Your product
+عينة|sample|I send you a sample.
+شهادة|certificate|We have a quality certificate.
+جودة|quality|The quality is very good.
+منطقة|region|The region is Souss-Massa.
+أسابيع|weeks|The delivery takes two weeks.
+حلو|sweet|The mandarins are sweet.
+طازج|fresh|The fruits are fresh.
+كبير|big|It is a big order.
+يرسل|send|I send the invoice today.
+يأتي|come|The truck comes at nine.
+يبقى|stay|We stay in the hotel.
+يملك|have|We have a small farm.
+من|from|The oranges come from Morocco.
+جدا|very|The price is very good.
+لكن|but|The price is good, but the quantity is small.
+أيضا|also|We also export mandarins.
+لأن|because|I am happy because the quality is good.
+هو|he|He works in the port.
+جيد|good|This is a good price.
+المغرب|morocco|Morocco exports many fruits.
+#What the client needs
+طن|ton|We need one ton of oranges.
+صندوق|box|One box has ten kilos.
+حجم|size|The size is medium.
+طلبية|order|The order is ready.
+شهر|month|We ship every month.
+كيلو|kilo/kilogram|The price is one euro per kilo.
+متوسط|medium|I want medium oranges.
+يريد|want|The client wants a discount.
+يحتاج|need|We need a certificate.
+يشتري|buy|The buyer buys twenty tons.
+يكرر|repeat|Please repeat the price.
+يستطيع|can|I can send a sample.
+لكل|per|The price is ten euros per box.
+أو|or|Do you want a box or a ton?
+بعض|some|I want some samples.
+من فضلك|please|Please send the invoice.
+كم|how many|How many boxes do you need?
+عشرة|ten|We have ten boxes.
+مئة|hundred|I need a hundred kilos.
+ألف|thousand|One thousand kilos is one ton.
+#The price
+ثمن|price|What is the price?
+أورو|euro/euros|The price is five euros.
+دولار|dollar/dollars|The price is ten dollars.
+تخفيض|discount|We give a ten percent discount.
+ثلاثون|thirty|I need thirty boxes.
+أرخص|cheaper|I want a cheaper price.
+مرتفع|high|The price is too high.
+أفضل|better|This is a better offer.
+صالح|valid|The offer is valid until Friday.
+يعطي|give|We give you a good price.
+يكلف|cost|How much does it cost?
+يفكر|think|I think about your offer.
+من أجل|for|This price is for one ton.
+متى|when|When is the delivery?
+قليلا|little|I need a little time.
+الآن|now|I call the buyer now.
+غالي|expensive|This price is expensive.
+رخيص|inexpensive/cheap|This box is cheap.
+اليوم|today|I send the sample today.
+هنا|here|The documents are here.
+#Delivery
+باخرة|ship|The ship is late.
+شاحنة|truck|The truck arrives tomorrow.
+مستودع|warehouse|The boxes are in the warehouse.
+تسليم|delivery|The delivery is on Monday.
+ميناء|port|The ship is in the port.
+أيام|days|It takes five days.
+تاريخ|date|What is the delivery date?
+بريد إلكتروني|email/e-mail|I send you an email.
+متجر|shop/store|The shop sells fresh fruits.
+الأول|first|This is the first order.
+يأخذ|take|The trip takes three days.
+يوصل|deliver|We deliver the order tomorrow.
+يحضر|bring|I bring the documents.
+عبر|by|We send the order by ship.
+حتى|until|I wait until Friday.
+كيف|how|How do you send the order?
+حوالي|about|It costs about ten euros.
+الأسبوع المقبل|next week|The ship arrives next week.
+الصباح|morning|The truck comes in the morning.
+سريع|fast|The truck is fast.
+#Payment
+بنك|bank|The bank is closed today.
+نصف|half|I pay half now.
+تحويل|transfer|The transfer is to your bank.
+مال|money|The money is in the bank.
+تفاصيل|details|Please send the details.
+بطاقة|card|I pay with a card.
+نقدا|cash|Do you pay cash?
+يدفع|pay|We pay after the delivery.
+يقول|say|What do you say?
+يعرف|know|I know the buyer.
+قبل|before|I pay before the delivery.
+بعد|after|We pay after the delivery.
+ثم|then|I check the documents, then I sign.
+مع|with|I work with farmers.
+ببطء|slowly|Please speak slowly.
+لماذا|why|Why is the ship late?
+حساب|account|Here is my account number.
+رقم|number|What is the phone number?
+سهل|easy|The transfer is easy.
+يستعمل|use|We use a truck.
+#Confirm the order
+المجموع|total|The total is one thousand euros.
+فاتورة|invoice|This is the invoice.
+كمية|quantity|The quantity is twenty tons.
+عقد|contract|I sign the contract.
+اتفاق|agreement|We have an agreement.
+جاهز|ready|The order is ready.
+يؤكد|confirm|I confirm the order.
+يوقع|sign|Please sign here.
+يحتوي|contain|The box contains oranges.
+يوافق|agree|I agree with the price.
+بالتأكيد|of course|Of course, I can help.
+لا|no|No, thank you.
+إذا|if|If you are ready, I sign.
+هذا|this|This is the invoice.
+ذلك|that|That is a good price.
+كل|all|All the boxes are ready.
+يقرر|decide|I decide today.
+يغير|change|We change the date.
+سعيد|happy|I am happy with the price.
+ممتاز|great|The quality is great.
+#Documents
+وثيقة|document|I read the document.
+لائحة التعبئة|packing list|Where is the packing list?
+المنشأ|origin|The origin is Morocco.
+شهادة المنشأ|certificate of origin|I need a certificate of origin.
+أسماء|names|Please check the names.
+أرقام|numbers|The numbers are correct.
+جمارك|customs|The boxes are in customs.
+ختم|stamp|The stamp is on the document.
+صناديق|boxes|The boxes are ready.
+صحيح|correct|Everything is correct.
+يتحقق|check|I check the documents.
+يبين|show|Please show me the invoice.
+يحصل|get|I get a copy today.
+يقرأ|read|I read the contract.
+داخل|inside|The stamp is inside the document.
+كل شيء|everything|Everything is ready.
+أي|which|Which document do you need?
+فقط|only|I need only a copy.
+ورقة|paper|I need a paper copy.
+نسخة|copy|Please send me a copy.
+#A problem
+مشكل|problem|We have a problem.
+طقس|weather|The weather is bad.
+حل|solution|What is the solution?
+الجمعة|friday|The truck arrives on Friday.
+متأخر|late|The ship is late.
+سيئ|bad|The weather is bad.
+بخير|fine/ok|Everything is fine.
+آسف|sorry|I am sorry.
+يصل|arrive|The ship arrives tomorrow.
+ينتظر|wait|I wait for the truck.
+يصلح|fix|We fix the problem.
+يخبر|tell|I tell the buyer.
+يكتب|write|I write an email.
+كل يوم|every day|I check the news every day.
+قريبا|soon|We fix it soon.
+ما زال|still|The ship is still late.
+يتصل|call|I call you tomorrow.
+هاتف|phone|My phone is here.
+لا بأس|no problem|No problem, I wait.
+مشغول|busy|I am busy today.
+#Thank you
+شكرا|thank you/thanks|Thank you for your help.
+زبون|customer|You are a good customer.
+أخبار|news|What is the news?
+مساعدة|help|I need your help.
+شريك|partner|You are a good partner.
+مستقبل|future|The future is good.
+معرض|fair|The fair is next month.
+فواكه|fruits|We export fresh fruits.
+يوسفي|mandarin/mandarins|I like mandarins.
+يشكر|thank|I thank you for the help.
+يرى|see|I see the news.
+يحب|like|I like oranges.
+يتمنى|hope|I hope we meet again.
+مرة أخرى|again|Please repeat again.
+الشهر المقبل|next month|The fair is next month.
+هناك|there|The warehouse is there.
+آخر|other|I want the other box.
+يوم|day|It is a good day.
+سنة|year|We export all year.
+رائع|wonderful|You are a wonderful partner.`;
+
+const ST=[];DATA.split('\n').forEach(l=>{if(l[0]=='#')ST.push({t:l.slice(1),w:[]});else{const[a,b,s]=l.split('|');ST[ST.length-1].w.push({ar:a,en:b.split('/'),s})}});
+ST.forEach((s,i)=>s.w.forEach((w,j)=>w.id=i+'_'+j));
+const $=id=>document.getElementById(id);
+const norm=t=>String(t).toLowerCase().replace(/[^a-z0-9\s'-]/g,' ').replace(/\s+/g,' ').trim();
+const IRR={buy:['bought'],take:['took','taken'],give:['gave','given'],bring:['brought'],come:['came'],say:['said'],think:['thought'],get:['got','gotten'],know:['knew','known'],see:['saw','seen'],tell:['told'],write:['wrote','written'],send:['sent'],pay:['paid'],meet:['met'],sell:['sold'],have:['has','had'],can:['could'],read:['reads'],speak:['spoke','spoken'],talk:['talks']};
+function has(sentence,variants){const v=norm(sentence),p=' '+v+' ',tk=v.split(' ');
+  return variants.some(raw=>{const a=norm(raw);if(a.includes(' '))return p.includes(' '+a+' ');
+    return tk.some(t=>t==a||(a.length>=3&&t.startsWith(a)&&t.length<=a.length+3)||(a.endsWith('e')&&a.length>=3&&t.startsWith(a.slice(0,-1)+'ing'))||(a.length>=3&&t.startsWith(a+a.slice(-1)+'ing'))||(IRR[a]||[]).includes(t))})}
+let cur=0,hide=true,shuf=false,ok={};try{ok=JSON.parse(localStorage.getItem('wr_ok')||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem('wr_ok',JSON.stringify(ok))}catch(e){}};
+function say(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.85;const v=speechSynthesis.getVoices().find(x=>/^en/i.test(x.lang));if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}}
+function tabs(){$('tabs').innerHTML=ST.map((s,i)=>{const n=s.w.filter(w=>ok[w.id]).length;return`<button class="tab ${i==cur?'on':''} ${n==s.w.length?'full':''}" onclick="go(${i})">${i+1}<small>${n}/${s.w.length}</small></button>`}).join('')}
+function stat(){const n=ST[cur].w.filter(w=>ok[w.id]).length;$('stat').textContent='STAGE '+(cur+1)+' · '+n+'/'+ST[cur].w.length}
+function hl(w){let s=w.s;const re=new RegExp('\\b('+w.en.map(x=>x.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&')).join('|')+')\\w*','i');return s.replace(re,m=>'<b>'+m+'</b>')}
+function render(){let ws=ST[cur].w.slice();if(shuf)ws.sort(()=>Math.random()-.5);
+  $('list').innerHTML=ws.map((w,i)=>`<div class="row ${ok[w.id]?'ok':''}" id="r_${w.id}"><div class="top"><span class="num">${i+1}</span><button class="play" onclick="say(find('${w.id}').s)">▶</button><div class="sent ${hide?'':'show'}" id="s_${w.id}" onclick="rev('${w.id}')">${hl(w)}</div></div><div class="ar" id="a_${w.id}"></div><div class="io"><input id="i_${w.id}" placeholder="Say another sentence with the same word…" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key=='Enter')chk('${w.id}')"><button class="mic" id="m_${w.id}" onclick="mic('${w.id}')">🎤</button><button class="chk" onclick="chk('${w.id}')">✓</button></div><div class="res" id="x_${w.id}"></div></div>`).join('')+panel();tabs();stat()}
+function find(id){const[a,b]=id.split('_');return ST[a].w[b]}
+function rev(id){const w=find(id);$('s_'+id).classList.add('show');$('a_'+id).textContent=w.ar+'  =  '+w.en[0]}
+function chk(id){const w=find(id),v=$('i_'+id).value.trim(),x=$('x_'+id),r=$('r_'+id);
+  if(norm(v).split(' ').filter(Boolean).length<2){x.className='res r';x.textContent='اكتب أو قل جملة كاملة (كلمتان على الأقل)';return}
+  if(norm(v)==norm(w.s)){x.className='res r';x.textContent='هذه نفس الجملة — ابتكر جملة أخرى';return}
+  if(has(v,w.en)){ok[w.id]=1;save();r.className='row ok';x.className='res g';x.textContent='✓ ممتاز! استعملت «'+w.en[0]+'»';rev(id);stat();tabs()}
+  else{r.className='row no';x.className='res r';x.textContent='✗ لا توجد كلمة «'+w.en[0]+'» في جملتك — أعد المحاولة';rev(id)}}
+let rec=null,recId=null;
+function mic(id){if(rec){const same=recId==id;stopMic();if(same)return}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('استعمل Chrome أو Edge للنطق');return}
+  rec=new SR();recId=id;rec.lang='en-US';rec.continuous=false;rec.interimResults=true;rec.maxAlternatives=3;
+  rec.onresult=e=>{const r=e.results[e.results.length-1];$('i_'+id).value=r[0].transcript;if(r.isFinal){const w=find(id);let best=r[0].transcript;for(let k=0;k<r.length;k++)if(has(r[k].transcript,w.en)){best=r[k].transcript;break}$('i_'+id).value=best;chk(id)}};
+  rec.onerror=e=>{if(e.error=='not-allowed'||e.error=='service-not-allowed')alert('الميكروفون محظور: اسمح به من إعدادات الموقع (🔒) ثم أعد تحميل الصفحة');stopMic()};
+  rec.onend=()=>stopMic();
+  try{rec.start();$('m_'+id).classList.add('on')}catch(e){rec=null}}
+function stopMic(){const r=rec,id=recId;rec=null;recId=null;if(id&&$('m_'+id))$('m_'+id).classList.remove('on');if(r)try{r.stop()}catch(_){}}
+function go(i){stopMic();pStop();cur=i;render();window.scrollTo(0,0)}
+function toggleShuf(){shuf=!shuf;$('bShuf').classList.toggle('on',shuf);render()}
+function toggleHide(){hide=!hide;$('bHide').classList.toggle('on',hide);render()}
+function resetStage(){ST[cur].w.forEach(w=>delete ok[w.id]);save();render()}
+
+const LS=["Hello, my name is Daniel. I am a buyer, and I work for a company in France. My job is to buy fruits from other countries and sell them in my region. Today I want to talk to you about my work, because tomorrow we meet for the first time. Where is my company? My company is in Lyon, in the south of France. We are a small company, but we work with many partners. What do we sell? We sell oranges, mandarins and other fresh fruits. We sell them to shops, markets and big restaurants. Yes, many people in France like oranges. They like them in the morning, and they like them in the evening. We export too, but only to our neighbors. Our main job is to find good fruits. We speak with farmers, we visit farms, and we check the quality. You know, a good buyer must listen a lot. I talk to farmers every day. Sometimes I speak English, sometimes I speak French, and sometimes I use my phone to call them. What is your name? Where do you work? Do you work in a cooperative? Do you export oranges? Yes? That is great. We want a partner in Morocco, because Morocco has very good oranges. We meet a lot of people at fairs, but we need a serious partner. You are in the export business, and I am in the buying business, so we can work together. Tomorrow I will tell you what we need. We need a regular supply, a good price and fresh fruits. We also need clear documents. In my company we are five people. My name is Daniel, and I am the buyer. Sophie works with the invoices. Marc works with the trucks. Anna answers the phone and the emails. We are a small team, but we work hard and we are very friendly. I think we can build a good future together. So, hello again, and thank you for your time. Tomorrow we meet, we talk, and we see. I hope you have a sample for me. I really want to taste your oranges. Where are you from exactly? Are you in Taroudant? I know that region. It is famous for oranges and mandarins. I hope to visit you one day. Now, I need to go to work. See you tomorrow.", "Hello again, this is Daniel. Today I want to talk about your product. First, I need a sample. Please send a sample of your oranges to my company. A sample can come by plane, and it takes about four days. A sample is not big, but it is very important, because I taste it and I check the quality. Is the orange sweet? Is it fresh? Is the color good? My colleague Marc, he also checks the skin and the size. He says that a good orange is heavy and juicy. Do you have a quality certificate? In Europe, the certificate is very important. Without a certificate, we cannot buy. I also need to know the region. Which region are the oranges from? I know that Morocco has many regions, and each region has its own taste. I like the oranges from the south, because they are very sweet. They come from the Souss region, and the weather there is warm and good for fruits. How many weeks is your season? For me, it is important to have fruits for many weeks, because my customers want to buy every week. Some farms stay open only for a short time, but I prefer a farm with a long season. Do you have a big farm, or a small farm? A big farm is good, but a small farm can also be very good if the quality is high. Please tell me about your farm. Do you have a lot of trees? Who works there? Does your family work with you? I also want to see some photos. Send me the photos by email. I want to see the trees, the boxes and the people at work. When the sample comes, I will test it with my team. We will cut the oranges, we will taste them, and we will take notes. If we are happy, I will call you. If the quality is not good, I will tell you honestly. I am always honest, because a good partner needs honesty. So please, send the sample soon. I stay at my office all week, and I wait for your package. I am very excited, because I think that your oranges are good. Thank you, and talk soon.", "Good morning, Daniel here. Today let me explain what my company needs. First, the quantity. We want to buy oranges, and we need a big quantity. For the first order, we need one ton. A ton is one thousand kilos. So how many boxes is that? One box has ten kilos, so one ton is a hundred boxes. Please repeat this number, so you are sure. A hundred boxes. Good. The size is also important. Some customers want big oranges, some want small oranges, but I want medium oranges, because they are easy to sell. Please send me only medium size, and please do not mix the sizes. Now, the order. When you receive the order, you need to prepare it, and you need some days. Then we want an order every month, so we need a regular supply. Can you do that? Can you send two tons per month? If yes, I can buy more later. Maybe five tons, or even ten tons. But I need to start small. This is a test. I want to see the quality, the time, and the service. If everything is good, we can increase the order. My customers want fresh fruit every week, so it is important to repeat the order often. Let me say it again, slowly. First order: one ton, medium size, in boxes of ten kilos. Second order: two tons, one month later. Then, every month, we repeat. The price will be per kilo or per box, you decide, but I prefer per kilo. Can you tell me your price per kilo, please? Do you sell by the ton or by the box? Some farmers sell only by the ton, others sell by the box. I want to know. Also, do you need some money in advance, or can I pay later? I will ask this again later. For now, I only want to know if you can supply this quantity. How many tons do you have available this season? A hundred tons? Five hundred? A thousand? It is good to know, because I may want more orders. I also want to buy some mandarins, but first the oranges. Please answer by email. I wait for your answer, and I hope it is yes. Thank you very much.", "Hello, this is Daniel. Today we talk about the price. The price is a very important point for me. I need a good price, but I also need good quality. Please give me your price for one ton of oranges. What does it cost? Is the price in euros, or in dollars? I prefer euros, because my company is in France. Today the market is difficult. Many buyers say that the price is high, and many sellers say that the price is low. I think that a fair price is better for everybody. Let me tell you my situation. I have a client who wants thirty tons. This is a big order, so I want a discount. A discount is normal for a big quantity. If you give me a discount of five percent, I can order today. If you give me ten percent, I can order thirty tons now, and then repeat every month. I know that your oranges are good, but they are a little expensive. Another seller offers a cheaper price. His oranges are not as sweet, but his price is lower. I do not want to buy only for the price, because quality is also important. So please think about it. Do you have a better offer? How long is your offer valid? Is it valid for one week, or for one month? I need this information, because prices change. When the weather is bad, the price goes up. When the harvest is big, the price goes down. Here is my idea: we sign a contract for six months, with a fixed price. In this way, you know your income, and I know my cost. It is good for both of us. For me, a fixed price is easier. For you, it is also safe. Now, please do not answer immediately. Take time, and think. When you are ready, send me an email with your best price. I also want to know the price for the packing, and the price for the transport, because the total cost is important. Is the packing included? Is the transport included? If yes, I can compare the offers more easily. I think that a clear price is a good start for a long relationship. Thank you, and I hope to hear from you soon.", "Good morning, Daniel speaking. Today I want to talk about the delivery. This is a very important step. First, how do you send the goods? You can use a truck, or you can use a ship. The truck is fast, but it is expensive. The ship is slower, but it is cheaper. For one ton, a truck is better. For thirty tons, a ship is better. The truck takes about four days from Morocco to France. The ship takes about one week, and then there is the port. In the port, the boxes wait in a warehouse. After that, a truck takes them to my shop. Do you see? There are many steps. Please tell me the delivery date. When is the first possible delivery? I want the goods next week, in the morning if possible, because my shop opens early. The truck can bring the boxes to my warehouse in Lyon. The address is on my email. Please check it, because it is easy to make a mistake. Who will deliver the goods? Is it your truck, or another company? Do you work with a freight forwarder? A good forwarder helps a lot, because he knows the port and the customs. Also, how many days do you need to prepare the order? Three days? Five days? I need to plan, because my shop is waiting. The first order is a test, so I do not want any problem. If the first delivery is good, I will take a bigger order. Please send me a message every day, with the news. For example, tell me when the truck leaves, when it arrives at the port, and when it arrives at my warehouse. I will wait until the goods arrive, and then I will check everything. About the cost of delivery, please tell me if it is included in the price. Some sellers include the transport, some do not. I prefer to have everything in one price, because it is simpler. Now, one more point. The goods must stay cool during the trip. Oranges are fresh fruits, so the temperature is important. Please use a good truck, with cold air. Thank you for your attention, and I hope that the delivery will be fast and safe.", "Hello, Daniel here. Now let us talk about payment. This is a delicate point, so I want to be very clear. First, how do you want to be paid? By bank transfer, with a card, or in cash? In international trade, the usual way is a bank transfer. I do not use cash, because it is not safe. So please send me your bank details: the name of the bank, the name of the account, and the account number. Please write the numbers slowly and carefully, because one wrong number is a big problem. Now, when do I pay? Some sellers say: pay before the delivery. Others say: pay after the delivery. I think that a middle solution is better. I can pay half before, and half after. For example, I pay half of the money when I confirm the order. Then you prepare the goods and you send them. When the goods arrive, and when I check them, I pay the other half. Why is this good? Because it is safe for you, and it is safe for me. You know that I am serious, and I know that you will send the goods. Do you agree? Please say yes or no. If you do not agree, tell me why. Maybe you need more money in advance. I know that farmers need money to buy boxes, and to pay workers. Then we can discuss. Another option is a letter of credit, but it is more complicated, and the bank charges extra. For our first order, I prefer something easy. I do not use a credit card for big amounts. A transfer is easy, and it is safe. I also need an invoice, with all the details, before I pay. The invoice must have your company name, my company name, the quantity, the price, and the total. Then my bank can make the transfer. I know that you are honest, but business is business. I hope that you understand. After the payment, I will send you a copy of the transfer, so you can see that the money is on the way. Please tell me when you receive it. Thank you very much for your patience.", "Good afternoon, this is Daniel. I think that we are almost ready. Let me confirm the order. First, please check the total. For thirty tons of medium oranges, at the agreed price, the total is as written in the invoice. Please read the invoice carefully. Is the quantity correct? Is the price correct? Are the names correct? If everything is fine, I confirm the order today. Of course, I also need a contract. A contract protects both of us. It contains the product, the quantity, the quality, the price, the delivery date, and the payment terms. If there is a problem, the contract tells us what to do. So this is a very important paper. Please read it slowly. If you agree with everything, you can sign it. If you do not agree with something, tell me, and we change it. I am open to discussion. For example, maybe you want to change the delivery date, or the payment terms. That is possible. We decide together, because it is a partnership. I do not like to force people. After we sign, the order is confirmed, and we cannot change it without an agreement from both sides. That is why I ask you to check all the points. Is that clear? Yes, I think that it is. When I sign, I send the contract by email, and then by post. Please keep a copy for your files. Now, are you ready to produce the goods? I hope that you are, because the season is short, and I want to start as soon as possible. If you say yes, I will be very happy. I am already happy, because your quality is great, and your service is excellent. All my team agrees. Marc says that the samples were wonderful, and Sophie says that your invoice is very clear. Anna says that your emails are always polite. So, if you are ready, I sign, and then we start. I decide today. I do not want to wait, because a good partner is rare. Thank you, and let us make this agreement a success.", "Hello, Daniel here. Today I want to talk about documents. In export, documents are everything. Without the right documents, the goods cannot cross the border. Let me list the main documents. First, the commercial invoice. Second, the packing list. The packing list shows what is inside each box, the weight, and the number of boxes. Third, the certificate of origin. This document shows that the oranges are from Morocco. The origin is very important for customs, because it decides the duty. Fourth, the phytosanitary certificate, which shows that the fruits are healthy. Fifth, the transport document. Please read each document carefully. Check the names, the addresses, the dates and the numbers. A small mistake can stop the truck at the border. For example, if the name of my company is wrong, or if the number of boxes is not correct, the customs officer will ask questions. Each document must have a stamp and a signature. The stamp is an official sign. Without a stamp, a document is not valid. Please send me a copy of all documents before the goods arrive, so I can check them. I need only a copy, by email. You keep the original paper, and you send it with the truck. Which document is the most important? I think that all of them are important, but the certificate of origin and the invoice are the most necessary. Everything must be correct. Please also use the same words in all the documents. If the invoice says oranges, the packing list must say oranges, and not fruits. Customs likes simple and clear documents. I will show the documents to my customs agent, and he will tell me if something is missing. He gets the papers, he reads them, and he enters the data in the system. If everything is fine, the goods are released. If not, they stay in the port, and that is expensive. So please, take your time, and prepare the documents with care. If you have a question, ask me. I am here to help. Thank you.", "Hi, this is Daniel, and I have some news. I am sorry, but we have a problem. The weather is bad in the north of Morocco, and the ship is late. It cannot leave the port today. The captain says that the sea is dangerous, and he must wait. I know that this is not good news, and I am very sorry for the trouble. But please do not worry. The goods are safe, and the boxes are in the warehouse, in the cool room. Everything is fine, but we must wait. When will the ship leave? The company says maybe on Friday, if the weather is better. If not, it will be next week. I will call the company every day, and I will tell you the news. Please do the same, and write to me if you have information. What is the solution? I see two options. First, we wait for the ship. Second, we send the goods by truck. A truck is more expensive, but it is faster, and the weather is not a problem. If the customer is in a hurry, the truck is a good solution. I think that we can fix this problem soon. Let me call my customer, and I will tell you his answer. He is very busy, but I think that he will understand. He is a nice man. I will also call my bank, to check the payment date, because the delay changes the schedule. Is that fine with you? Please tell me. If you agree, I will write the new date in the contract. Do not worry, we are still friends and partners, and a delay is not the end of the world. In business, problems happen, but a good partner finds a solution. My phone is always on. If you have a question, call me, I am here. No problem, I am never too busy for you. Let us stay calm, and let us solve it together. I hope that the ship arrives soon. I will write you again this evening. Thank you for your patience, and thank you for your understanding.", "Hello, this is Daniel, and today I want to say thank you. Thank you for your work, thank you for your patience, and thank you for your help. The oranges arrived, and the quality is wonderful. My customers love them. One customer said that they are the best oranges that he can remember. That is great news. For me, you are not only a seller, you are a partner. In my work, I see many sellers, but only a few real partners. You are one of them. I like your service, your honesty and your seriousness. I hope that we continue this relationship for many years. Let me talk a little about the future. Next month, there is a big fair in Paris, for fruits and vegetables. I will be there, and I hope that you can come too. We can meet again, we can talk face to face, and we can see new products. It is also a good place to meet other customers. There are people from many countries, and I can introduce you to some of them. Maybe they will want your oranges, or your mandarins. I would like to try your mandarins next season, because I think they are excellent. I also want to talk about a new project. I think that we can sell your fruits in other markets, like Belgium or Germany. I have friends there who are interested. It is a good opportunity, but we must plan it well. In the next year, we can increase the volume, and we can sign a long contract. What do you think? I hope you like the idea. Please think about it, and tell me your opinion. I know that you are busy, so there is no hurry. I want to say also that it is a pleasure to work with you every day. Your team is polite, and you answer quickly. That is wonderful. So, once again, thank you. Have a good day, have a good week, and have a good year. See you at the fair next month, and let us build a great future together. Goodbye, and see you again."];
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const rxe=s=>s.replace(/[.*+?^${}()|[\]\\\/-]/g,'\\$&');
+let P={st:-1,i:0,on:false,rate:.85,tok:0,arr:[]};
+function getNote(i){try{return JSON.parse(localStorage.getItem('wr_notes')||'{}')[i]||''}catch(e){return ''}}
+function saveNote(){try{const o=JSON.parse(localStorage.getItem('wr_notes')||'{}');o[cur]=$('pNote').value;localStorage.setItem('wr_notes',JSON.stringify(o))}catch(e){}}
+function panel(){P.rate=.85;return `<div class="row" style="border-color:var(--blue)"><div style="font-weight:900;color:var(--blue);margin-bottom:6px">🎧 فقرة الاستماع — المرحلة ${cur+1} (~3 دقائق)</div><div class="sub" style="margin-bottom:8px">استمع لشخص يتحدث (فيه كلمات هذه المرحلة)، ثم اكتب ما فهمته بأي لغة، ثم قارن مع النص.</div><div class="io"><button class="chk" style="background:var(--gold);padding:10px 16px" id="pBtn" onclick="pToggle()">▶ ابدأ</button><button class="mic" onclick="pRestart()" title="من البداية">⏮</button><select id="pRate" onchange="P.rate=+this.value" style="padding:0 8px;border-radius:10px;background:#0b1a1f;color:#fff;border:1px solid var(--line);font-family:inherit"><option value=".7">بطيء</option><option value=".85" selected>عادي</option><option value="1">سريع</option></select></div><div class="res" id="pInfo" style="color:var(--muted)"></div><textarea id="pNote" dir="auto" oninput="saveNote()" placeholder="اكتب ما فهمته..." style="width:100%;height:130px;margin-top:8px;border-radius:10px;border:1px solid var(--line);background:#0b1a1f;color:#fff;padding:10px;font-family:inherit;font-size:.95rem">${esc(getNote(cur))}</textarea><button class="pb" onclick="showTxt()">👁 أظهر النص</button><div id="pTxt" class="ptxt" style="display:none"></div></div>`}
+function pUpd(){const b=$('pBtn'),n=$('pInfo');if(!b)return;const tot=P.arr.length;b.textContent=P.on?'⏸ إيقاف':(P.st==cur&&P.i>0&&P.i<tot?'▶ تابع':'▶ ابدأ');n.textContent=P.st==cur&&tot?('جملة '+Math.min(P.i+1,tot)+' / '+tot):''}
+function pNext(){if(!P.on)return;if(P.i>=P.arr.length){P.on=false;P.i=0;pUpd();$('pInfo').textContent='انتهت الفقرة ✔ اكتب ما فهمته';return}
+  const my=++P.tok,u=new SpeechSynthesisUtterance(P.arr[P.i].trim());u.lang='en-US';u.rate=P.rate;const v=speechSynthesis.getVoices().find(x=>/^en/i.test(x.lang));if(v)u.voice=v;
+  u.onend=()=>{if(P.on&&P.tok==my){P.i++;pNext()}};try{speechSynthesis.speak(u)}catch(e){}pUpd()}
+function pStop(){P.on=false;P.tok++;try{speechSynthesis.cancel()}catch(e){}}
+function pToggle(){if(P.on){pStop();pUpd();return}
+  if(P.st!=cur||!P.arr.length){P.st=cur;P.arr=LS[cur].match(/[^.?!:]+[.?!:]+/g)||[LS[cur]];P.i=0}
+  pStop();P.on=true;pNext()}
+function pRestart(){pStop();P.st=cur;P.arr=LS[cur].match(/[^.?!:]+[.?!:]+/g)||[LS[cur]];P.i=0;P.on=true;pNext()}
+function showTxt(){const vs=[];ST[cur].w.forEach(w=>w.en.forEach(e=>{if(e.length>2)vs.push(e)}));
+  const re=new RegExp('\\b('+vs.sort((a,b)=>b.length-a.length).map(rxe).join('|')+')\\w{0,3}\\b','gi');
+  const t=$('pTxt');t.innerHTML=esc(LS[cur]).replace(re,'<b>$&</b>');t.style.display='block'}
+
+speechSynthesis.onvoiceschanged=()=>{};
+render();
+</script></body></html>
